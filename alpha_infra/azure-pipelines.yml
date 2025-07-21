@@ -1,0 +1,84 @@
+name: $(BuildDefinitionName)_$(date:yyyyMMdd)$(rev:.r)
+
+trigger:
+  branches:
+    include:
+      - master
+      - main
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  - group: TerraformSecrets
+  - name: work_dir
+    value: $(System.DefaultWorkingDirectory)/alpha_infra
+  - name: azure-subscription
+    value: Pay-As-You-Go
+  - name: service-connection
+    value: my-terraform-sc
+
+stages:
+- stage: Plan
+  displayName: 'Terraform Plan'
+  jobs:
+  - job: PlanJob
+    steps:
+    - task: AzureCLI@2
+      inputs:
+        azureSubscription: $(service-connection)
+        scriptType: 'bash'
+        scriptLocation: 'inlineScript'
+        inlineScript: |
+          cd $(work_dir)
+          terraform init
+          terraform plan -var "admin_username=$(admin_username)" -var "admin_password=$(admin_password)"
+          pwd
+          ls -a
+    # - task: PublishPipelineArtifact@1
+    #   inputs:
+    #     targetPath: $(work_dir)/output
+    #     artifact: 'plan-output'
+    #   displayName: 'Publish tfplan as artifact'
+
+- stage: ManualValidation
+  displayName: 'Manual Validation'
+  jobs:
+  - job: ManualValidationJob
+    pool: server
+    steps:
+    - task: ManualValidation@0
+      inputs:
+        notifyUsers: 'samueloluwade@outlook.com'
+        instructions: 'Deploy the planned resources?'
+        onTimeout: reject
+
+- stage: TerraformApply
+  displayName: 'Terraform Apply'
+  jobs:
+  - job: TerraformApplyJob
+    steps:
+    # - task: DownloadPipelineArtifact@2
+    #   inputs:
+    #     artifact: 'plan-output'
+    #     path: $(work_dir)
+    #   displayName: 'Download Build Artifacts'
+    - task: AzureCLI@2
+      inputs:
+        azureSubscription: $(service-connection)
+        scriptType: 'bash'
+        scriptLocation: 'inlineScript'
+        inlineScript: |
+          cd $(work_dir)
+          pwd
+          ls -a
+          terraform init
+          terraform apply -auto-approve -var "admin_username=$(admin_username)" -var "admin_password=$(admin_password)"
+      condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+
+  # - job: TerraformDestroyJob
+  #   steps:
+  #   # Approval step for destroy
+  #   - script: terraform destroy
+  #     displayName: 'Manual Terraform Destroy'
+  #     condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
