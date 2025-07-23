@@ -1,0 +1,37 @@
+# Terraform state, plan, and crash files
+*.tfstate
+*.tfstate.backup
+*.tfplan
+crash.log
+
+# Terraform working directories
+**/.terraform/
+
+# Terraform override and local-only variable files
+*.tfvars
+*.tfvars.json
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Terraform CLI configuration files
+.terraformrc
+terraform.rc
+
+# AWS CLI credentials and config (just in case they are placed or copied into the repo)
+aws/
+.aws/
+**/.aws/
+.aws/credentials
+.aws/config
+
+# IDE/editor folders (optional but recommended)
+.vscode/
+.idea/
+
+# OS-specific files (optional)
+.DS_Store
+Thumbs.db
+
+**/.terraform/
